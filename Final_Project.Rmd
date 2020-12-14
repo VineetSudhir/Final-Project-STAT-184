@@ -1,0 +1,235 @@
+---
+title: "Final Project Stat 184"
+author: "Vineet Sudhir"
+date: "12/13/2020"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+```
+**Introduction **
+
+** The data I am using created by Chris Roth, he recorded 2 male participants from the year 2011 to 2016. Both of these participants are labeled A and B in the datasets. Participant A was at age 23 when he started recording data in 2011 and participant B was at age 40. He recorded how they felt about their lives at that current time in a variable named sentiment.score. The higher the sentiment score (40-60+) it would mean they are feeling good about their lives at that current time and if it is low, that would mean they are feeling bad or sad about their lives at that time. During 2011 to 2016, both participants went through similar lifestyle changes such as starting a new relationship, a career change, and switching environments. **
+
+** Reseach Question **
+
+** So the purpose of my analysis and my research question is, How participants A and B's sentiment scores are affected based on the similar lifestyle changes they made given that their ages are different, whether people with different ages will find the same lifestyle changes more meaningful than others or the same? For example, I want to find out whether participant B who is older would still feel the same way about a career change as particpant A does **
+
+
+** I have always thought of what I want to do in the future and wonder which decisions I will make in the future will be the most meaningful for myself. So I found datasets that can see how people's choices in the future affected their lives. Which is why I chose these datasets to work with on this project **
+
+```{r}
+# importing the datasets after uploading them to RStudio
+library(readr)
+a_sentiment <- read_csv("~/R/x86_64-redhat-linux-gnu-library/eda/a.facebook.csv")
+
+```
+
+
+```{r}
+library(readr)
+b_sentiment <- read_csv("~/R/x86_64-redhat-linux-gnu-library/eda/b.facebook.csv")
+
+```
+
+
+```{r}
+library(readr)
+a_lifestyle_changes <- read_csv("~/R/x86_64-redhat-linux-gnu-library/eda/a.lifestyle_changes.csv")
+
+```
+
+```{r}
+library(readr)
+b_lifestyle_changes <- read_csv("~/R/x86_64-redhat-linux-gnu-library/eda/b.lifestyle_changes.csv")
+
+```
+
+** Inspecting the data **
+
+```{r}
+glimpse(a_lifestyle_changes)
+
+```
+```{r}
+glimpse(b_lifestyle_changes)
+
+```
+
+```{r}
+glimpse(a_sentiment)
+
+```
+```{r}
+glimpse(b_sentiment)
+
+```
+```{r}
+head(a_lifestyle_changes)
+
+```
+```{r}
+head(b_lifestyle_changes)
+
+```
+
+```{r}
+head(a_sentiment)
+
+```
+
+```{r}
+head(b_sentiment)
+
+```
+
+```{r}
+# I want to graph the data so I can see how participant A and B's sentiment scores are affected throughout 2011 and 2016 based on their lifestyle changes.
+
+# To make the dataframe glyph ready form I need to extract the year for each row out of the date for all 4 dataframes
+a_sentiment_wyear <-
+  a_sentiment %>%
+  mutate(year = substring(a_sentiment$date,1,4))
+
+b_sentiment_wyear <-
+  b_sentiment %>%
+  mutate(year = substring(b_sentiment$date,1,4))
+
+a_lifestyle_changes_wyear <- 
+  a_lifestyle_changes %>%
+  mutate(year = substring(a_lifestyle_changes$date,7,10))
+
+b_lifestyle_changes_wyear <- 
+  b_lifestyle_changes %>%
+  mutate(year = substring(b_lifestyle_changes$date,7,10))
+```
+
+
+```{r}
+# Since I got the year for each case, the date is no longer needed in the dataframes, so I remove the date column from the datasets.
+Updated_a_sentiment_wyear <- select(a_sentiment_wyear, -c(date))
+Updated_b_sentiment_wyear <- select(b_sentiment_wyear, -c(date))
+Updated_a_lifestyle_changes_wyear <- select(a_lifestyle_changes_wyear, -c(date))
+Updated_b_lifestyle_changes_wyear <- select(b_lifestyle_changes_wyear, -c(date))
+
+```
+
+```{r}
+# Getting rid of NA's and empty cells in each case.
+
+# creating a user-defined function to make it easier to remove all rows with empty or NA cells for all 4 dataframes
+
+remove_rows_wemptycells_or_na <- function(df){
+  df[!apply(df == "", 1, all),]                     # remove rows with only empty cells
+  df[rowSums(is.na(df)) != ncol(df),]               # remove rows with only NA's
+
+}
+  
+```
+
+```{r}
+remove_rows_wemptycells_or_na(Updated_a_sentiment_wyear)
+remove_rows_wemptycells_or_na(Updated_b_sentiment_wyear)
+remove_rows_wemptycells_or_na(Updated_a_lifestyle_changes_wyear)
+remove_rows_wemptycells_or_na(Updated_b_lifestyle_changes_wyear)
+
+
+# no more cases with empty or NA cells
+```
+
+```{r}
+# joining the dataframes based on participant a or b, so that I just have to work with one dataframe for each participant
+Joined_a_sentiment <- 
+  Updated_a_sentiment_wyear %>%
+  select(sentiment.score, year) %>%
+  left_join(Updated_a_lifestyle_changes_wyear %>% select(year, major_lifestyle_change),
+            by = c("year"="year"))
+
+
+Joined_b_sentiment <- 
+  Updated_b_sentiment_wyear %>%
+  select(sentiment.score, year) %>%
+  left_join(Updated_b_lifestyle_changes_wyear %>% select(year, major_lifestyle_change),
+            by = c("year"="year"))
+```
+
+
+```{r}
+# To make the sentiment score more meaningful in the graph I'm going to get the mean sentiment score for participant A and B and use it as a y-intercept in the graph.
+
+mean_sentiment_S_A = 0
+
+for (i in 1:nrow(Joined_a_sentiment)){
+  mean_sentiment_S_A = mean_sentiment_S_A + Joined_a_sentiment$sentiment.score[i]
+  
+}
+print(nrow(Joined_a_sentiment))
+print(mean_sentiment_S_A)
+
+
+```
+```{r}
+# To make the sentiment score more meaningful in the graph I'm going to get the mean sentiment score for participant A and B.
+
+mean_sentiment_S_B = 0
+
+for (i in 1:nrow(Joined_b_sentiment)){
+  mean_sentiment_S_B = mean_sentiment_S_B + Joined_b_sentiment$sentiment.score[i]
+  
+}
+print(nrow(Joined_b_sentiment))
+print(mean_sentiment_S_B)
+
+
+```
+
+```{r}
+mean_sentiment_A = 30185/31169
+print(mean_sentiment_A)
+
+mean_sentiment_B = 9516/6719
+print(mean_sentiment_B)
+```
+
+
+
+```{r}
+# Plotting graph for participant A
+
+Joined_a_sentiment %>%
+  ggplot(aes(x=year, y=sentiment.score )) + 
+  geom_point(aes(color = major_lifestyle_change)) + 
+  geom_hline(yintercept = mean_sentiment_B) +
+  facet_wrap( ~ year)
+ 
+
+# NA in the graph means there was no new major lifestyle change for the participant since the last one. For example, in the year 2012 it is major lifestyle change is NA because the last major lifestyle change happened in 2011, the next major lifestyle change happened in the year 2013. So, NA based sentiment score is just how their lives are at that moment after the previous lifestyle change.
+
+# From the graph it looks like the participant A's sentiment score didn't rise a lot after an environment change, the sentiment score stayed around the 30's until participant A started a new relationship where the sentiment score following the end of 2013 in 2014, spiked up above 40 which is never happened since 2011. And after going through another environment change in 2015 it did not impact the sentiment score that much. Which concludes that participant A's major lifestyle change that affect his sentiment score the most was starting a new relationship. He also went through a career change in the year 2013 however, it was before he started his new relationship so switching careers didn't positively affect his life that much compared to starting a new relationship.
+
+```
+
+
+```{r}
+# Plotting graph for participant B
+
+Joined_b_sentiment %>%
+  ggplot(aes(x=year, y=sentiment.score )) + 
+  geom_point(aes(color = major_lifestyle_change)) + 
+  geom_hline(yintercept = mean_sentiment_B) +
+  facet_wrap( ~ year)
+ 
+# Looking at this graph, participant B starting a new relationship did spike the sentiment score for that year in 2011, however looking at the year 2012, the sentiment score went to the highest its ever been from 2011 to 2016 so it looks like participant B's more meaningful lifestyle change was getting a different career rather than starting a new relationship. Totally different than participant A's results.
+```
+** The biggest challenge I faced with this project was pre-processing the data to make it in glyph ready form. I was struggling to get rid of the empty values in the cells of the dataframes but then I did some research and figured out there is a difference between empty cells and NA valued cells. So I had to perform two statements to get rid of all the potential missing or empty cells in each row of the dataset. And after I figured out how to get rid of the missing values, the statments weren't working but I solved this issue by getting rid of the date column which wasn't much use to me after I created the year column. After that, the code executed perfectly. **
+
+** Conclusion **
+
+** So taking a close look at both graphs it is clear that both participant's found different values from their lifestyle changes. Participant B found a switch in career the most meaningful decision in his life from 2011 to 2016 and participant A's most meaningful decision that impacted his life positively from 2011 to 2016 was starting a new relationship. To conclude, it doesn't matter what age your age is and there is no procedure to follow to live your best life. Each decision in our lives will impact each person differently, it is more personal than I thought. **
+
+
+
+
+
